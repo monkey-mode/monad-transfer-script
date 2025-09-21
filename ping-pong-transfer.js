@@ -16,7 +16,9 @@ const MONAD_CONFIG = {
 const PING_PONG_CONFIG = {
   maxCycles: parseInt(process.env.MAX_CYCLES) || 100,
   minRemainingAmount: ethers.parseEther(process.env.MIN_REMAINING_AMOUNT || "0.5"),
-  delayBetweenTransfers: 2000 // 2 seconds delay between transfers
+  delayBetweenTransfers: parseInt(process.env.DELAY_BETWEEN_TRANSFERS) || 2000,
+  maxRetries: parseInt(process.env.MAX_RETRIES) || 3,
+  retryDelay: parseInt(process.env.RETRY_DELAY) || 5000
 };
 
 class PingPongTransfer {
@@ -297,12 +299,64 @@ class PingPongTransfer {
     console.log(`💎 Min Threshold: ${ethers.formatEther(PING_PONG_CONFIG.minRemainingAmount)} ${MONAD_CONFIG.currency}`);
   }
 
+  async checkRecoveryMode() {
+    const balanceA = await this.getBalance(this.walletAAddress);
+    const balanceB = await this.getBalance(this.walletBAddress);
+
+    // If wallet A is empty but wallet B has funds, we're in recovery mode
+    if (balanceA === BigInt(0) && balanceB > BigInt(0)) {
+      console.log("🔄 Recovery Mode Detected!");
+      console.log("=".repeat(30));
+      console.log(`💰 Wallet A: ${ethers.formatEther(balanceA)} ${MONAD_CONFIG.currency} (empty)`);
+      console.log(`💰 Wallet B: ${ethers.formatEther(balanceB)} ${MONAD_CONFIG.currency} (has funds)`);
+      console.log("");
+      console.log("🔧 Attempting to recover funds from Wallet B to Wallet A...");
+      console.log("");
+
+      return true;
+    }
+
+    return false;
+  }
+
+  async runRecoveryMode() {
+    console.log("🚨 RECOVERY MODE - Transferring all funds from B to A");
+    console.log("=".repeat(50));
+
+    const result = await this.performTransfer(this.walletB, this.walletAAddress, this.walletBAddress);
+
+    if (result.success) {
+      if (result.fee) {
+        this.totalFeesUsed += result.fee;
+      }
+      console.log("✅ Recovery transfer completed successfully!");
+      console.log("🎉 All funds have been moved back to Wallet A");
+      return true;
+    } else {
+      console.log(`❌ Recovery transfer failed: ${result.reason}`);
+      console.log("💡 You may need to manually transfer funds or check gas prices");
+      return false;
+    }
+  }
+
   async run() {
     console.log("🚀 Monad Testnet Ping-Pong Transfer Script");
     console.log("==========================================");
     console.log("");
 
     await this.initialize();
+
+    // Check for recovery mode command line argument
+    const isForceRecovery = process.argv.includes("--recover") || process.argv.includes("-r");
+    if (isForceRecovery) {
+      console.log("🔧 Force Recovery Mode Enabled");
+      console.log("=".repeat(30));
+      const recoverySuccess = await this.runRecoveryMode();
+      if (recoverySuccess) {
+        await this.showFinalBalances();
+      }
+      return;
+    }
 
     // Check initial balances
     const initialBalanceA = await this.getBalance(this.walletAAddress);
@@ -318,6 +372,17 @@ class PingPongTransfer {
       return;
     }
 
+    // Check if we need to run in recovery mode
+    const isRecoveryMode = await this.checkRecoveryMode();
+
+    if (isRecoveryMode) {
+      const recoverySuccess = await this.runRecoveryMode();
+      if (recoverySuccess) {
+        await this.showFinalBalances();
+      }
+      return;
+    }
+
     // Run ping-pong transfers
     const success = await this.runPingPong();
 
@@ -328,6 +393,8 @@ class PingPongTransfer {
     } else {
       console.log("");
       console.log("❌ Ping-Pong Transfer failed. Please check the logs above for details.");
+      console.log("");
+      console.log("💡 If funds are stuck in Wallet B, you can re-run this script to recover them.");
     }
   }
 }

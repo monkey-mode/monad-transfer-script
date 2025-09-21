@@ -26,6 +26,8 @@ JavaScript scripts to perform transfer transactions on the Monad Testnet. Includ
 - ✅ Configurable maximum cycles and minimum amounts
 - ✅ Real-time transfer statistics and logging
 - ✅ Safety checks to prevent infinite loops
+- ✅ **Recovery Mode**: Automatically detects and recovers stuck funds
+- ✅ **Force Recovery**: Manual recovery option for stuck funds
 
 ## Network Configuration
 
@@ -84,6 +86,17 @@ bun run transfer.js
 bun run ping-pong
 # or
 bun run ping-pong-transfer.js
+```
+
+### Recovery Mode
+```bash
+# Automatic recovery (detects stuck funds)
+bun run ping-pong
+
+# Force recovery mode
+bun run recover
+# or
+bun run ping-pong-transfer.js --recover
 ```
 
 ### Development Mode
@@ -173,3 +186,6 @@ bun run install-bun
 - **"Cannot transfer: Available amount is less than minimum"**: Wallet A needs at least 0.5 MON + gas fees
 - **"Transaction failed"**: Check network connection and gas price settings
 - **"Insufficient funds"**: Ensure wallet A has enough balance for gas fees
+- **"Funds stuck in Wallet B"**: Use recovery mode: `bun run recover`
+- **"Final transfer failed"**: Re-run the script - it will automatically detect and recover stuck funds
+- **"Recovery mode detected"**: Script automatically found funds in Wallet B and will move them to Wallet A
