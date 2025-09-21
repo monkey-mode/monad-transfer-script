@@ -21,6 +21,7 @@ class MonadTransfer {
     this.wallet = null;
     this.walletA = null;
     this.walletB = null;
+    this.totalFeesUsed = BigInt(0);
   }
 
   async initialize() {
@@ -143,10 +144,13 @@ class MonadTransfer {
       const receipt = await txResponse.wait();
 
       if (receipt.status === 1) {
+        const actualFee = receipt.gasUsed * receipt.gasPrice;
+        this.totalFeesUsed += actualFee;
         console.log("✅ Transaction confirmed successfully!");
         console.log(`📊 Gas used: ${receipt.gasUsed.toString()}`);
         console.log(`⛽ Gas price: ${ethers.formatUnits(receipt.gasPrice, "gwei")} Gwei`);
-        console.log(`💰 Total cost: ${ethers.formatEther(receipt.gasUsed * receipt.gasPrice)} ${MONAD_CONFIG.currency}`);
+        console.log(`💰 Transaction fee: ${ethers.formatEther(actualFee)} ${MONAD_CONFIG.currency}`);
+        console.log(`💰 Total fees used: ${ethers.formatEther(this.totalFeesUsed)} ${MONAD_CONFIG.currency}`);
         return true;
       } else {
         console.log("❌ Transaction failed");
@@ -187,6 +191,9 @@ class MonadTransfer {
       console.log("📊 Final Balances:");
       console.log(`💰 Wallet A: ${ethers.formatEther(finalBalanceA)} ${MONAD_CONFIG.currency}`);
       console.log(`💰 Wallet B: ${ethers.formatEther(finalBalanceB)} ${MONAD_CONFIG.currency}`);
+      console.log("");
+      console.log("📈 Transfer Statistics:");
+      console.log(`💰 Total Fees Used: ${ethers.formatEther(this.totalFeesUsed)} ${MONAD_CONFIG.currency}`);
     } else {
       console.log("");
       console.log("❌ Transfer failed. Please check the logs above for details.");

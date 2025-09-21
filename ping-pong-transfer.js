@@ -30,6 +30,7 @@ class PingPongTransfer {
     this.currentReceiver = null;
     this.cycleCount = 0;
     this.totalTransfers = 0;
+    this.totalFeesUsed = BigInt(0);
   }
 
   async initialize() {
@@ -168,11 +169,12 @@ class PingPongTransfer {
       const receipt = await txResponse.wait();
 
       if (receipt.status === 1) {
+        const actualFee = receipt.gasUsed * receipt.gasPrice;
         console.log("✅ Transaction confirmed successfully!");
         console.log(`📊 Gas used: ${receipt.gasUsed.toString()}`);
         console.log(`⛽ Gas price: ${ethers.formatUnits(receipt.gasPrice, "gwei")} Gwei`);
-        console.log(`💰 Total cost: ${ethers.formatEther(receipt.gasUsed * receipt.gasPrice)} ${MONAD_CONFIG.currency}`);
-        return { success: true, amount: transferInfo.availableAmount };
+        console.log(`💰 Transaction fee: ${ethers.formatEther(actualFee)} ${MONAD_CONFIG.currency}`);
+        return { success: true, amount: transferInfo.availableAmount, fee: actualFee };
       } else {
         console.log("❌ Transaction failed");
         return { success: false, reason: "transaction_failed" };
@@ -199,6 +201,9 @@ class PingPongTransfer {
     const result = await this.performTransfer(this.walletB, this.walletAAddress, this.walletBAddress);
 
     if (result.success) {
+      if (result.fee) {
+        this.totalFeesUsed += result.fee;
+      }
       console.log("✅ Final transfer completed successfully!");
       return true;
     } else {
@@ -226,6 +231,12 @@ class PingPongTransfer {
       const result = await this.performTransfer(this.currentSender, this.currentReceiver, this.currentSenderAddress);
 
       this.totalTransfers++;
+
+      // Track fees for successful transfers
+      if (result.success && result.fee) {
+        this.totalFeesUsed += result.fee;
+        console.log(`💰 Running total fees: ${ethers.formatEther(this.totalFeesUsed)} ${MONAD_CONFIG.currency}`);
+      }
 
       if (!result.success) {
         if (result.reason === "below_minimum") {
@@ -281,6 +292,7 @@ class PingPongTransfer {
     console.log("=".repeat(30));
     console.log(`🔄 Total Cycles: ${this.cycleCount}`);
     console.log(`📤 Total Transfers: ${this.totalTransfers}`);
+    console.log(`💰 Total Fees Used: ${ethers.formatEther(this.totalFeesUsed)} ${MONAD_CONFIG.currency}`);
     console.log(`⛽ Gas Price: ${MONAD_CONFIG.gasPriceGwei} Gwei`);
     console.log(`💎 Min Threshold: ${ethers.formatEther(PING_PONG_CONFIG.minRemainingAmount)} ${MONAD_CONFIG.currency}`);
   }
