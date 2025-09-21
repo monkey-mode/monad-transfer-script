@@ -6,7 +6,9 @@
     "scripts": {
         "start": "bun run transfer.js",
         "transfer": "bun run transfer.js",
+        "ping-pong": "bun run ping-pong-transfer.js",
         "dev": "bun --watch transfer.js",
+        "dev-ping-pong": "bun --watch ping-pong-transfer.js",
         "test": "bun run test-setup.js",
         "install-bun": "bash install.sh"
     },

@@ -31,7 +31,7 @@ console.log("");
 
 // Test 3: Check environment variables
 console.log("3️⃣ Environment Variables:");
-const requiredVars = ["PRIVATE_KEY", "WALLET_A_ADDRESS", "WALLET_B_ADDRESS"];
+const requiredVars = ["WALLET_A_PRIVATE_KEY", "WALLET_B_PRIVATE_KEY", "WALLET_A_ADDRESS", "WALLET_B_ADDRESS"];
 let envStatus = true;
 
 requiredVars.forEach((varName) => {

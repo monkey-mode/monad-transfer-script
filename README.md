@@ -1,9 +1,15 @@
-# Monad Testnet Transfer Script
+# Monad Testnet Transfer Scripts
 
-A JavaScript script to perform transfer transactions on the Monad Testnet, transferring all available funds from wallet A to wallet B while ensuring the transfer amount is at least 0.5 MON.
+JavaScript scripts to perform transfer transactions on the Monad Testnet. Includes both single transfer and ping-pong transfer functionality.
+
+## Scripts Available
+
+1. **Single Transfer** (`transfer.js`) - Transfers all funds from wallet A to wallet B once
+2. **Ping-Pong Transfer** (`ping-pong-transfer.js`) - Continuously transfers funds between wallet A and B until minimum amount remains, then transfers all back to wallet A
 
 ## Features
 
+### Single Transfer Script
 - ✅ Transfers all available funds from wallet A to wallet B
 - ✅ Prevents transfers when amount < 0.5 MON
 - ✅ Calculates gas fees automatically
@@ -11,6 +17,15 @@ A JavaScript script to perform transfer transactions on the Monad Testnet, trans
 - ✅ Comprehensive error handling
 - ✅ Transaction monitoring and confirmation
 - ✅ Balance checking before and after transfer
+
+### Ping-Pong Transfer Script
+- ✅ Continuously transfers funds between wallet A and B
+- ✅ Stops when transfer amount < 0.5 MON
+- ✅ Automatically transfers all remaining funds back to wallet A
+- ✅ Supports both wallet private keys
+- ✅ Configurable maximum cycles and minimum amounts
+- ✅ Real-time transfer statistics and logging
+- ✅ Safety checks to prevent infinite loops
 
 ## Network Configuration
 
@@ -39,35 +54,53 @@ cp env.example .env
 
 4. Edit the `.env` file with your configuration:
 ```env
-PRIVATE_KEY=your_private_key_here
+# For Single Transfer (only need wallet A private key)
+PRIVATE_KEY=your_wallet_a_private_key_here
 WALLET_A_ADDRESS=0x...
 WALLET_B_ADDRESS=0x...
+
+# For Ping-Pong Transfer (need both private keys)
+WALLET_A_PRIVATE_KEY=your_wallet_a_private_key_here
+WALLET_B_PRIVATE_KEY=your_wallet_b_private_key_here
+WALLET_A_ADDRESS=0x...
+WALLET_B_ADDRESS=0x...
+
+# Optional: Ping-pong settings
+MAX_CYCLES=100
+MIN_REMAINING_AMOUNT=0.5
 ```
 
 ## Usage
 
-Run the transfer script:
+### Single Transfer
 ```bash
 bun start
-```
-
-Or directly with Bun:
-```bash
+# or
 bun run transfer.js
 ```
 
-For development with auto-reload:
+### Ping-Pong Transfer
 ```bash
+bun run ping-pong
+# or
+bun run ping-pong-transfer.js
+```
+
+### Development Mode
+```bash
+# Single transfer with auto-reload
 bun dev
+
+# Ping-pong transfer with auto-reload
+bun run dev-ping-pong
 ```
 
-Test your setup:
+### Setup & Testing
 ```bash
+# Test your setup
 bun test
-```
 
-Quick installation (installs Bun + dependencies):
-```bash
+# Quick installation (installs Bun + dependencies)
 bun run install-bun
 ```
 
