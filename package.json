@@ -1,0 +1,25 @@
+{
+    "name": "monad-transfer-script",
+    "version": "1.0.0",
+    "description": "Script to perform transfer transactions on Monad Testnet",
+    "main": "transfer.js",
+    "scripts": {
+        "start": "bun run transfer.js",
+        "transfer": "bun run transfer.js",
+        "dev": "bun --watch transfer.js",
+        "test": "bun run test-setup.js",
+        "install-bun": "bash install.sh"
+    },
+    "dependencies": {
+        "ethers": "^6.8.1",
+        "dotenv": "^16.3.1"
+    },
+    "keywords": [
+        "monad",
+        "ethereum",
+        "transfer",
+        "blockchain"
+    ],
+    "author": "",
+    "license": "MIT"
+}
