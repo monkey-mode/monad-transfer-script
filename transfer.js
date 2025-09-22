@@ -15,6 +15,12 @@ const MONAD_CONFIG = {
 // Minimum transfer amount (0.5 MON)
 const MIN_TRANSFER_AMOUNT = ethers.parseEther("0.5");
 
+// Retry settings
+const RETRY_CONFIG = {
+  maxRetries: parseInt(process.env.MAX_RETRIES) || 3,
+  retryDelay: parseInt(process.env.RETRY_DELAY) || 5000
+};
+
 class MonadTransfer {
   constructor() {
     this.provider = null;
@@ -92,6 +98,46 @@ class MonadTransfer {
       estimatedFee,
       canTransfer: availableAmount >= MIN_TRANSFER_AMOUNT
     };
+  }
+
+  async sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async performTransferWithRetry() {
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+      try {
+        console.log(`🔄 Transfer - Attempt ${attempt}/${RETRY_CONFIG.maxRetries}`);
+
+        const result = await this.performTransfer();
+
+        if (result) {
+          if (attempt > 1) {
+            console.log(`✅ Transfer succeeded on attempt ${attempt}`);
+          }
+          return result;
+        }
+
+        lastError = false;
+
+        if (attempt < RETRY_CONFIG.maxRetries) {
+          console.log(`❌ Transfer failed. Retrying in ${RETRY_CONFIG.retryDelay / 1000} seconds...`);
+          await this.sleep(RETRY_CONFIG.retryDelay);
+        }
+      } catch (error) {
+        lastError = false;
+
+        if (attempt < RETRY_CONFIG.maxRetries) {
+          console.log(`❌ Transfer error: ${error.message}. Retrying in ${RETRY_CONFIG.retryDelay / 1000} seconds...`);
+          await this.sleep(RETRY_CONFIG.retryDelay);
+        }
+      }
+    }
+
+    console.log(`❌ Transfer failed after ${RETRY_CONFIG.maxRetries} attempts`);
+    return false;
   }
 
   async performTransfer() {
@@ -176,8 +222,8 @@ class MonadTransfer {
       return;
     }
 
-    // Perform the transfer
-    const success = await this.performTransfer();
+    // Perform the transfer with retry
+    const success = await this.performTransferWithRetry();
 
     if (success) {
       console.log("");

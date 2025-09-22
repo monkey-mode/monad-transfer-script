@@ -28,6 +28,8 @@ JavaScript scripts to perform transfer transactions on the Monad Testnet. Includ
 - ✅ Safety checks to prevent infinite loops
 - ✅ **Recovery Mode**: Automatically detects and recovers stuck funds
 - ✅ **Force Recovery**: Manual recovery option for stuck funds
+- ✅ **Retry Mechanism**: 3 automatic retries for failed transfers
+- ✅ **Configurable Retries**: Customizable retry count and delay
 
 ## Network Configuration
 
@@ -70,6 +72,11 @@ WALLET_B_ADDRESS=0x...
 # Optional: Ping-pong settings
 MAX_CYCLES=100
 MIN_REMAINING_AMOUNT=0.5
+DELAY_BETWEEN_TRANSFERS=2000
+
+# Optional: Retry settings
+MAX_RETRIES=3
+RETRY_DELAY=5000
 ```
 
 ## Usage
@@ -119,12 +126,21 @@ bun run install-bun
 
 ## How it Works
 
+### Single Transfer Script
 1. **Initialization**: Connects to Monad Testnet using the provided RPC URL
 2. **Balance Check**: Retrieves the current balance of wallet A
 3. **Gas Calculation**: Calculates the required gas fee for the transaction
 4. **Amount Validation**: Ensures the available amount (after gas fees) is at least 0.5 MON
-5. **Transaction**: Sends the maximum possible amount to wallet B
+5. **Transaction with Retry**: Sends the maximum possible amount to wallet B (with 3 retries)
 6. **Confirmation**: Waits for transaction confirmation and displays results
+
+### Ping-Pong Transfer Script
+1. **Initialization**: Connects to Monad Testnet and validates both wallet keys
+2. **Recovery Check**: Automatically detects if funds are stuck in wallet B
+3. **Ping-Pong Loop**: Alternates transfers between wallet A and B
+4. **Retry Logic**: Each transfer attempts up to 3 times with 5-second delays
+5. **Minimum Threshold**: Stops when transfer amount < 0.5 MON
+6. **Final Cleanup**: Transfers all remaining funds back to wallet A
 
 ## Safety Features
 

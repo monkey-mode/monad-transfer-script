@@ -78,6 +78,8 @@ class PingPongTransfer {
       console.log(`💰 Currency: ${MONAD_CONFIG.currency}`);
       console.log(`🔄 Max Cycles: ${PING_PONG_CONFIG.maxCycles}`);
       console.log(`💎 Min Remaining: ${ethers.formatEther(PING_PONG_CONFIG.minRemainingAmount)} ${MONAD_CONFIG.currency}`);
+      console.log(`🔄 Max Retries: ${PING_PONG_CONFIG.maxRetries}`);
+      console.log(`⏱️  Retry Delay: ${PING_PONG_CONFIG.retryDelay / 1000}s`);
       console.log("");
     } catch (error) {
       console.error("❌ Initialization failed:", error.message);
@@ -117,6 +119,46 @@ class PingPongTransfer {
       estimatedFee,
       canTransfer: availableAmount > BigInt(0)
     };
+  }
+
+  async sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async performTransferWithRetry(fromWallet, toAddress, fromAddress, transferName = "Transfer") {
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= PING_PONG_CONFIG.maxRetries; attempt++) {
+      try {
+        console.log(`🔄 ${transferName} - Attempt ${attempt}/${PING_PONG_CONFIG.maxRetries}`);
+
+        const result = await this.performTransfer(fromWallet, toAddress, fromAddress);
+
+        if (result.success) {
+          if (attempt > 1) {
+            console.log(`✅ ${transferName} succeeded on attempt ${attempt}`);
+          }
+          return result;
+        }
+
+        lastError = result;
+
+        if (attempt < PING_PONG_CONFIG.maxRetries) {
+          console.log(`❌ ${transferName} failed (${result.reason}). Retrying in ${PING_PONG_CONFIG.retryDelay / 1000} seconds...`);
+          await this.sleep(PING_PONG_CONFIG.retryDelay);
+        }
+      } catch (error) {
+        lastError = { success: false, reason: "error", error: error.message };
+
+        if (attempt < PING_PONG_CONFIG.maxRetries) {
+          console.log(`❌ ${transferName} error: ${error.message}. Retrying in ${PING_PONG_CONFIG.retryDelay / 1000} seconds...`);
+          await this.sleep(PING_PONG_CONFIG.retryDelay);
+        }
+      }
+    }
+
+    console.log(`❌ ${transferName} failed after ${PING_PONG_CONFIG.maxRetries} attempts`);
+    return lastError || { success: false, reason: "max_retries_exceeded" };
   }
 
   async performTransfer(fromWallet, toAddress, fromAddress) {
@@ -230,7 +272,7 @@ class PingPongTransfer {
       console.log(`📤 Transferring from ${this.currentSenderAddress} to ${this.currentReceiver === this.walletBAddress ? this.walletBAddress : this.walletAAddress}`);
       console.log("-".repeat(40));
 
-      const result = await this.performTransfer(this.currentSender, this.currentReceiver, this.currentSenderAddress);
+      const result = await this.performTransferWithRetry(this.currentSender, this.currentReceiver, this.currentSenderAddress, `Cycle ${this.cycleCount} Transfer`);
 
       this.totalTransfers++;
 
@@ -323,7 +365,7 @@ class PingPongTransfer {
     console.log("🚨 RECOVERY MODE - Transferring all funds from B to A");
     console.log("=".repeat(50));
 
-    const result = await this.performTransfer(this.walletB, this.walletAAddress, this.walletBAddress);
+    const result = await this.performTransferWithRetry(this.walletB, this.walletAAddress, this.walletBAddress, "Recovery Transfer");
 
     if (result.success) {
       if (result.fee) {
@@ -333,7 +375,7 @@ class PingPongTransfer {
       console.log("🎉 All funds have been moved back to Wallet A");
       return true;
     } else {
-      console.log(`❌ Recovery transfer failed: ${result.reason}`);
+      console.log(`❌ Recovery transfer failed after ${PING_PONG_CONFIG.maxRetries} attempts: ${result.reason}`);
       console.log("💡 You may need to manually transfer funds or check gas prices");
       return false;
     }
